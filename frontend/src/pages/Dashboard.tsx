@@ -147,8 +147,30 @@ const Dashboard = () => {
                     const isPositive = isNumber && number > 0;
                     const isHeading = word.endsWith(':') && paragraph.includes('✓');
 
+                    // Check for rupee sign amounts (₹25L, ₹26.67L, etc)
+                    const hasRupeeSign = word.includes('₹') ||
+                      word.toLowerCase().includes('rupee') ||
+                      /^₹\d+(\.\d+)?L$/i.test(word) ||
+                      /rupee.?(sign)?\s*\d+(\.\d+)?L$/i.test(word.toLowerCase());
+
                     const words = part.split(" ");
                     const currentWordIndex = words.indexOf(word);
+
+                    // Check for name patterns like "Dear Mr. Rahul Parashar,"
+                    const isDearPattern = /^Dear$/i.test(word);
+                    const isTitlePattern = /^(Mr|Mrs|Ms|Dr|Prof)\.?$/i.test(word);
+
+                    // Check if current word could be part of a name (capitalized word)
+                    const isNameCandidate = /^[A-Z][a-z]+$/i.test(word);
+
+                    // Check if previous words indicate this might be part of a formal greeting
+                    const prevWords = words.slice(0, currentWordIndex);
+                    const containsGreetingWord = prevWords.some(w => /^(Dear|Mr|Mrs|Ms|Dr|Prof)\.?$/i.test(w));
+
+                    // Consider it part of formal greeting if it's directly "Dear" or a title, or 
+                    // if it looks like a name and comes after greeting words
+                    const isPartOfFormalGreeting = isDearPattern || isTitlePattern ||
+                      (isNameCandidate && containsGreetingWord && currentWordIndex <= 4);
 
                     // Find "The One Alpha Team" phrase
                     const teamPhrase = "The One Alpha Team";
@@ -160,8 +182,24 @@ const Dashboard = () => {
                       currentWordStart >= teamPhraseIndex &&
                       currentWordStart < teamPhraseIndex + teamPhrase.length;
 
+
+                    // Check for specific phrases to highlight
+                    const isOnwardsAndUpwards = paragraph.toLowerCase().includes("onwards and upwards") &&
+                      (word.toLowerCase() === "onwards" ||
+                        word.toLowerCase() === "and" ||
+                        word.toLowerCase() === "upwards" ||
+                        (word.toLowerCase() === ","));
+
+                    const isinnutshell = paragraph.toLowerCase().includes("in a nutshell") &&
+                      (word.toLowerCase() === "in" ||
+                        word.toLowerCase() === "a" ||
+                        word.toLowerCase() === "nutshell" ||
+                        (word.toLowerCase() === ":"));
+
+                    // Enhanced bullet point detection for specific bullet points
+
                     // Check for month year pattern (e.g., "April 2024")
-                    const months = /^(January|February|March|April|May|June|July|August|September|October|November|December)$/;
+                    const months = /^(Jan|February|March|April|May|June|July|August|September|October|November|December)$/;
                     const nextWord = words[currentWordIndex + 1];
                     const prevWord = words[currentWordIndex - 1];
                     const isDatePattern =
@@ -175,36 +213,98 @@ const Dashboard = () => {
                     const isStandaloneZero = word === "0" || word === " 0 ";
 
                     // Check for "variable model" phrase
-                    const isVariableModelPhrase = 
+                    const isVariableModelPhrase =
                       (word === "Variable" && words[currentWordIndex + 1] === "Model") ||
                       (word === "Model" && words[currentWordIndex - 1] === "Variable");
                     const isdearsir = word === "Dear" || word === "Sir";
                     const isbestregards = word === "Best" || word === "Regards";
-                    const iskeyperformancehighlights = 
-                      word === "Key" || 
-                      word === "Performance" || 
+                    const iskeyperformancehighlights =
+                      word === "Key" ||
+                      word === "Performance" ||
                       word === "Highlights" ||
                       word === "Highlights:";
+
+
+                    const issnapshots =
+                      word === "Performance" ||
+                      word === "Snapshot:";
                     const isreturns = word === "Returns:";
                     const isriskcomfortscore = word === "Risk" || word === "Comfort" || word === "Score:";
                     const isdrawdowns = word === "Drawdowns:";
                     const isbhaisaab = word === "Bhaisaab";
                     const isstability = word === "Stability:";
 
+                    // Enhanced bullet point detection for specific bullet points
+                    const isBulletPoint = word.trim() === "•" || word.trim() === "-";
+                    const isAfterBullet = prevWord && (prevWord.trim() === "•" || prevWord.trim() === "-");
 
+                    // Check for specific bullet point lines: Returns, Turbulence, Risk-Comfort
+                    const isReturnsLine = paragraph.includes("•Returns:") ||
+                      (isBulletPoint && nextWord && nextWord.includes("Returns")) ||
+                      (isAfterBullet && word.includes("Returns"));
+
+                    const isTurbulenceLine = paragraph.includes("•Turbulence:") ||
+                      (isBulletPoint && nextWord && nextWord.includes("Turbulence")) ||
+                      (isAfterBullet && word.includes("Turbulence"));
+
+                    const isRiskComfortLine = paragraph.includes("•Risk-Comfort Score") ||
+                      paragraph.includes("Stability") ||
+                      (isBulletPoint && nextWord && nextWord.includes("Risk")) ||
+                      (isAfterBullet && (word.includes("Risk") || word.includes("Comfort") || word.includes("Score") || word.includes("Stability")));
+
+                    // Check if word is part of any bullet point section
+                    const isPartOfBulletPoint = isReturnsLine || isTurbulenceLine || isRiskComfortLine || isBulletPoint;
+
+                    // Find "The One Alpha Team" phrase
+
+                    // Check for formatted dates like "25th January 2025" or "31st March 2025"
+                    const dayWithSuffix = /^(\d+)(st|nd|rd|th)$/i.test(word); // Matches day with suffix like 25th
+                    const nextIsMonth = nextWord && /^(January|February|March|April|May|June|July|August|September|October|November|December)$/i.test(nextWord);
+                    const nextNextIsYear = words[currentWordIndex + 2] && /^(202\d|203\d)$/i.test(words[currentWordIndex + 2]);
+
+                    const isMonthWord = /^(January|February|March|April|May|June|July|August|September|October|November|December)$/i.test(word);
+                    const prevIsDayWithSuffix = prevWord && /^(\d+)(st|nd|rd|th)$/i.test(prevWord);
+                    const nextIsYear = nextWord && /^(202\d|203\d)$/i.test(nextWord);
+
+                    const isYearWord = /^(202\d|203\d)$/i.test(word);
+                    const prevIsMonth = prevWord && /^(January|February|March|April|May|June|July|August|September|October|November|December)$/i.test(prevWord);
+                    const prevPrevIsDayWithSuffix = words[currentWordIndex - 2] && /^(\d+)(st|nd|rd|th)$/i.test(words[currentWordIndex - 2]);
+
+                    // Check if current word is part of a formatted date
+                    const isPartOfFormattedDate =
+                      (dayWithSuffix && nextIsMonth) ||
+                      (isMonthWord && (prevIsDayWithSuffix || nextIsYear)) ||
+                      (isYearWord && prevIsMonth && prevPrevIsDayWithSuffix);
+
+                    // Check if this is the first line after Summary heading
+                    const isFirstParagraph = index === 0;
 
                     // Build className based on conditions
                     let className = "";
-                    if (isPartOfTeam) {
+                    if (isOnwardsAndUpwards) {
+                      className = "text-white font-bold"; // Highlight "Onwards and Upwards," phrase
+                    } else if (isPartOfBulletPoint) {
+                      className = "text-white font-bold"; // Bullet points like "• Returns:", "• Turbulence:", "• Risk-Comfort Score"
+                    } else if (isFirstParagraph) {
+                      className = "text-white font-bold"; // First paragraph after Summary heading
+                    } else if (isPartOfFormattedDate) {
+                      className = "text-white font-bold"; // Dates like "25th January 2025"
+                    } else if (isPartOfFormalGreeting) {
+                      className = "text-white font-bold";
+                    } else if (hasRupeeSign) {
+                      className = "text-white font-bold";
+                    } else if (isPartOfTeam) {
                       className = "text-white font-bold";
                     } else if (isDatePattern) {
+                      className = "text-white font-bold";
+                    } else if (issnapshots) {
                       className = "text-white font-bold";
                     } else if (isHeading) {
                       className = "text-white font-bold";
                     } else if (isStandaloneZero) {
-                      className = "text-red-500 font-bold";
+                      className = "text-white font-bold";
                     } else if (isScore) {
-                      className = "text-green-600 font-bold";
+                      className = "text-white font-bold";
                     } else if (isVariableModelPhrase) {
                       className = "text-white font-bold";
                     } else if (isNegative) {
@@ -236,6 +336,13 @@ const Dashboard = () => {
                     else if (isstability) {
                       className = "text-white font-bold";
                     }
+                    else if (isinnutshell) {
+                      className = "text-white font-bold";
+                    }
+                    else {
+                      className = "text-gray-300"; // Default class for other words
+                    }
+
 
                     return (
                       <span
@@ -271,7 +378,7 @@ const Dashboard = () => {
               <div className={`flex flex-col ${showHiddenData ? 'lg:flex-row' : ''} gap-6 h-[calc(100vh-10rem)]`}> {/* Adjusted height calculation */}
                 {/* Table container - reduced height in landscape mode */}
                 <div className="w-full lg:w-[30%] h-[30vh] lg:h-[50%]">
-                  <div className="h-full bg-gray-600/20 rounded-lg overflow-hidden"> {/* Added background and rounded corners */}
+                  <div className="h-full bg-gray-600/20 rounded-lg overflow-hidden shadow-lg"> {/* Added shadow */}
                     <Card className="h-full p-0"> {/* Removed default padding */}
                       <motion.div
                         variants={containerVariants}
@@ -285,18 +392,18 @@ const Dashboard = () => {
                         <table className="w-full h-full text-center border-collapse">
                           <thead>
                             <tr className="border-b border-gray-700">
-                              <th className="h-10 py-0.5 px-2 font-semibold text-[20px] md:text-[22px] lg:text-[24px] text-gray-200 border-gray-700">
+                              <th className="h-14 py-2 px-4 font-semibold text-[20px] md:text-[22px] lg:text-[24px] text-gray-200 border-gray-700">
                                 <div className="flex items-center justify-center h-full">
-
+                                  Metrics
                                 </div>
                               </th>
                               {wholeData?.labels?.map((label, index) => {
-                                // Skip the "Current Investment" label
-                                if (label === "Current Investment") return null;
+                                // Show only "The One Alpha" (index 2, third column)
+                                if (index !== 2) return null;
                                 return (
                                   <th
                                     key={index}
-                                    className="h-10 py-0.5 px-1 font-semibold text-[18px] md:text-[22px] lg:text-[24px] text-gray-200 border-l border-gray-700"
+                                    className="h-14 py-2 px-4 font-semibold text-[20px] md:text-[22px] lg:text-[24px] text-white border-l border-gray-700 bg-gradient-to-r from-green-600/20 to-green-500/20"
                                   >
                                     <div className="flex items-center justify-center h-full">
                                       {label}
@@ -319,9 +426,9 @@ const Dashboard = () => {
                                 className="border-b border-gray-700 hover:bg-gray-700/30"
                               >
                                 {/* Metric Column */}
-                                <td className="h-12 py-0.5 px-1 sm:px-2 md:px-2 lg:px-2 text-[14px] sm:text-[17px] md:text-[18px] lg:text-[19px] text-gray-200 font-bold">
-                                  <div className="flex items-center justify-center h-full px-2">
-                                    <span className="line-clamp-2">
+                                <td className="h-16 py-3 px-4 text-[16px] sm:text-[18px] md:text-[19px] lg:text-[20px] text-gray-200 font-bold">
+                                  <div className="flex items-center justify-center h-full">
+                                    <span className="line-clamp-2 text-center">
                                       {comparison.label}
                                     </span>
                                   </div>
@@ -329,14 +436,27 @@ const Dashboard = () => {
 
                                 {/* Value columns */}
                                 {wholeData?.labels?.map((label, labelIndex) => {
-                                  if (label === "Current Investment") return null;
+                                  // Show only "The One Alpha" (index 2, third column)
+                                  if (labelIndex !== 2) return null;
                                   const valueKey = `value${labelIndex + 1}`;
                                   const rawValue = comparison[valueKey];
+                                  
+                                  // Determine color based on metric name
+                                  let textColor = "text-gray-300"; // default
+                                  const labelLower = comparison.label.toLowerCase();
+                                  if (labelLower.includes("net") || labelLower.includes("return")) {
+                                    textColor = "text-green-400";
+                                  } else if (labelLower.includes("max") || labelLower.includes("pain") || 
+                                           labelLower.includes("drawdown")) {
+                                    textColor = "text-red-400";
+                                  } else if (labelLower.includes("risk") && labelLower.includes("comfort")) {
+                                    textColor = "text-white";
+                                  }
+                                  
                                   return (
                                     <td
                                       key={labelIndex}
-                                      className={`h-12 py-0.5 px-1 sm:px-1 md:px-2 lg:px-2 text-[14px] sm:text-[17px] md:text-[18px] lg:text-[19px] font-bold border-l border-gray-700 ${labelIndex === 1 ? "text-red-500" : "text-green-600"
-                                        }`}
+                                      className={`h-16 py-3 px-4 text-[16px] sm:text-[18px] md:text-[19px] lg:text-[20px] font-bold border-l border-gray-700 ${textColor}`}
                                     >
                                       <div className="flex items-center justify-center h-full">
                                         {typeof rawValue === "number"
@@ -370,26 +490,28 @@ const Dashboard = () => {
                             <XAxis
                               dataKey="name"
                               type="category"
-                              padding={{ left: 0, right: 0 }}
+                              padding={{ left: 10, right: 10 }}
                               stroke="hsl(var(--muted-foreground))"
                               tickFormatter={(value) => {
                                 const jsDate = new Date(
                                   (value - 25569) * 86400 * 1000
                                 );
                                 return jsDate.toLocaleDateString("en-US", {
+                                  day: "numeric",    // Added day display
                                   month: "short",
                                   year: "2-digit",
                                 });
                               }}
                               tick={{
-                                fontSize: 11, // Reduced font size
-                                textAnchor: "end",
+                                fontSize: 11,
+                                textAnchor: "middle",
                                 fill: "#ccc",
-                                dy: 8
+                                dy: 13
                               }}
-                              height={40} // Added height for X-axis
-                              tickMargin={10} // Increased margin to push labels down
-                              angle={-45} // Added direct angle prop
+                              height={65}           // Increased height to accommodate day numbers
+                              tickMargin={20}       // Increased margin for more space
+                              angle={-35}
+                              interval={Math.ceil(wholeData?.comparePerformance?.length / 10) || 0}
                             />
                             <YAxis
                               type="number"
@@ -398,8 +520,8 @@ const Dashboard = () => {
                               axisLine={false}
                               tickLine={false}
                               tick={{ fontSize: 12, fontWeight: 300, fill: "#ccc" }}
-                              tickMargin={2}
-                              width={35}
+                              tickMargin={1}
+                              width={30}
                             />
                             <Tooltip
                               contentStyle={{
